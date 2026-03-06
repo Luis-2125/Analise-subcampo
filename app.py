@@ -12,18 +12,19 @@ uploaded_file = st.file_uploader("Arraste seu CSV aqui", type="csv")
 
 if uploaded_file is not None:
     # Lendo o arquivo subido
-    rel = pd.read_csv(uploaded_file)
-    
+    rel = pd.read_csv(uploaded_file, sep=None,
+                      engine='python', encoding='utf-8-sig')
+
     # --- 2. SEU CÓDIGO DE FILTRAGEM ---
     list_cabecalho = [
-        "Image Filename","Issue Severity","Issue Longitude","Issue Latitude",
-        "Issue Type Name","Issue Component Name","Issue Temp Min","Issue Temp Max",
-        "Issue Temp Avg","Issue Temp Delta","Issue Field Type","Issue Field"
+        "Image Filename", "Issue Severity", "Issue Longitude", "Issue Latitude",
+        "Issue Type Name", "Issue Component Name", "Issue Temp Min", "Issue Temp Max",
+        "Issue Temp Avg", "Issue Temp Delta", "Issue Field Type", "Issue Field"
     ]
-    
+
     # Criando o dataframe filtrado
     cabecalho_1 = rel[list_cabecalho].copy()
-    
+
     # Inicializando colunas
     cabecalho_1["Severidade"] = "0"
     cabecalho_1["Localização"] = "OK"
@@ -47,7 +48,8 @@ if uploaded_file is not None:
         except:
             return 0.0
 
-    cabecalho_1["delta_float"] = cabecalho_1["Issue Temp Delta"].apply(tratar_delta)
+    cabecalho_1["delta_float"] = cabecalho_1["Issue Temp Delta"].apply(
+        tratar_delta)
 
     # Lógica de Severidade (Sua estrutura de IF/ELIF)
     for i in range(len(cabecalho_1)):
@@ -62,38 +64,39 @@ if uploaded_file is not None:
         elif 5 <= linha_delta < 20 and "Severity 2" in issue_sev:
             cabecalho_1.loc[i, "Severidade"] = "OK"
         elif 20 <= linha_delta < 40 and "Severity 3" in issue_sev:
-            cabecalho_1.loc[i, "Severidade"] = "OK" # Ajustado conforme seu padrão
+            # Ajustado conforme seu padrão
+            cabecalho_1.loc[i, "Severidade"] = "OK"
             cabecalho_1.loc[i, "Severidade"] = "OK"
         elif linha_delta >= 40 and "Severity 4" in issue_sev:
             cabecalho_1.loc[i, "Severidade"] = "OK"
         else:
-            if i not in indices_delta: # Evita sobrepor o "VERIFICAR" dos nulos
+            if i not in indices_delta:  # Evita sobrepor o "VERIFICAR" dos nulos
                 cabecalho_1.loc[i, "Severidade"] = "Verificar Severidade"
 
     # --- 3. EXIBIÇÃO E DOWNLOAD ---
     st.success("Arquivo processado com sucesso!")
-    
+
     # Define aqui EXATAMENTE as colunas que você quer no Excel final
     # (Removi a 'delta_float' e quaisquer outras auxiliares)
     colunas_exibir = [
-        "Image Filename","Issue Severity","Issue Longitude","Issue Latitude",
-        "Issue Type Name","Issue Component Name","Issue Temp Min","Issue Temp Max",
-        "Issue Temp Avg","Issue Temp Delta","Issue Field Type","Issue Field",
+        "Image Filename", "Issue Severity", "Issue Longitude", "Issue Latitude",
+        "Issue Type Name", "Issue Component Name", "Issue Temp Min", "Issue Temp Max",
+        "Issue Temp Avg", "Issue Temp Delta", "Issue Field Type", "Issue Field",
         "Severidade", "Localização", "Posição"
     ]
-    
+
     df_excel = cabecalho_1[colunas_exibir]
 
     # Mostra uma prévia na tela para conferência
     st.subheader("Prévia do Relatório")
     st.dataframe(df_excel)
 
-    #Planilha que será exportada
+    # Planilha que será exportada
 
     colunas_export = [
-        "Image Filename","Issue Severity","Issue Longitude","Issue Latitude",
-        "Issue Type Name","Issue Component Name","Issue Temp Min","Issue Temp Max",
-        "Issue Temp Avg","Issue Temp Delta","Issue Field Type","Issue Field"
+        "Image Filename", "Issue Severity", "Issue Longitude", "Issue Latitude",
+        "Issue Type Name", "Issue Component Name", "Issue Temp Min", "Issue Temp Max",
+        "Issue Temp Avg", "Issue Temp Delta", "Issue Field Type", "Issue Field"
     ]
 
     df_export = cabecalho_1[colunas_export]
@@ -102,8 +105,9 @@ if uploaded_file is not None:
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         # Enviamos para o Excel apenas o dataframe filtrado
-        df_export.to_excel(writer, index=False, sheet_name='Relatorio_Filtrado')
-    
+        df_export.to_excel(writer, index=False,
+                           sheet_name='Relatorio_Filtrado')
+
     st.download_button(
         label="📥 Baixar Relatório em Excel (.xlsx)",
         data=output.getvalue(),
