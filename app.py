@@ -104,11 +104,16 @@ if uploaded_file is not None:
     # Transformação para Excel em memória
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        # Enviamos para o Excel apenas o dataframe filtrado
-        df_export.to_excel(writer, index=False,
-                           sheet_name='Relatorio_Filtrado')
-
-    st.download_button(
+        df_export.to_excel(writer, index=False, sheet_name='Relatorio_Filtrado', startrow=4) # Começa na linha 5 para sobrar espaço
+        
+        workbook  = writer.book
+        worksheet = writer.sheets['Relatorio_Filtrado']
+        
+        # Inserir a imagem (logo.png deve estar na pasta)
+        # O parâmetro 'x_offset' e 'y_offset' ajustam a posição fina
+        worksheet.insert_image('A1', 'logo.png', {'x_scale': 0.5, 'y_scale': 0.5}) 
+    
+    st.download_button(...)(
         label="📥 Baixar Relatório em Excel (.xlsx)",
         data=output.getvalue(),
         file_name="Relatorio_Final.xlsx",
