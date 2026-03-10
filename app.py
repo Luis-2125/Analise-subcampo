@@ -25,7 +25,45 @@ if uploaded_file is not None:
 
     cabecalho_1 = rel[list_cabecalho].copy()
 
+    # 1. Definição da função de limpeza de coordenadas
+    def limpar_coordenada_v3(valor):
+        if pd.isna(valor) or str(valor).strip() == "" or str(valor).lower() == "nan":
+            return valor
+
+        # Remove todos os pontos e espaços para pegar apenas a sequência numérica
+        str_val = str(valor).replace('.', '').strip()
+        is_negative = str_val.startswith('-')
+
+        # Filtra apenas os dígitos
+        digits = "".join(filter(str.isdigit, str_val))
+
+        if not digits:
+            return valor
+
+        # Regra de Negócio: Para coordenadas GPS padrão (Brasil),
+        # a parte inteira tem 2 dígitos (Ex: -37.xxx ou -49.xxx).
+        # Ajustamos para colocar o ponto após os dois primeiros dígitos.
+        parte_inteira = digits[:2]
+        parte_decimal = digits[2:]
+
+        valor_final = f"{parte_inteira}.{parte_decimal}"
+
+        # Retorna como float para o Excel reconhecer como número
+        try:
+            return float(f"-{valor_final}" if is_negative else valor_final)
+        except:
+            return valor
+
+    # 2. Aplicação em ambas as colunas
+    colunas_geo = ["Issue Longitude", "Issue Latitude"]
+    for col in colunas_geo:
+        if col in cabecalho_1.columns:
+            cabecalho_1[col] = cabecalho_1[col].apply(limpar_coordenada_v3)
     # --- FUNÇÃO PADRÃO PARA TODAS AS TEMPERATURAS ---
+# ... (segue o resto do seu código)
+
+    # --- FUNÇÃO PADRÃO PARA TODAS AS TEMPERATURAS ---
+
     def formatar_temp_final(valor):
         if pd.isna(valor) or str(valor).strip() == "":
             return ""
@@ -109,7 +147,7 @@ if uploaded_file is not None:
         if pd.isna(linha_delta):
             cabecalho_1.loc[i, "Severidade"] = "Verificar Severidade"
         else:
-            if damage_type in ["Damage", "Open String"]:
+            if damage_type in ["Damage", "Open String", "Open Circuit"]:
                 cabecalho_1.loc[i, "Severidade"] = "OK"
             elif linha_delta < 5.0 and "Severity 1" in issue_sev:
                 cabecalho_1.loc[i, "Severidade"] = "OK"
@@ -254,6 +292,6 @@ if uploaded_file is not None:
     st.download_button(
         label="📥 Baixar Relatório em Excel (.xlsx)",
         data=output.getvalue(),
-        file_name="nome_planilha.xlsx",
+        file_name=f"Relatorio_{nome_projeto.replace(' ', '_')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
