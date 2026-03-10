@@ -25,42 +25,50 @@ if uploaded_file is not None:
 
     cabecalho_1 = rel[list_cabecalho].copy()
 
-    # 1. Definição da função de limpeza de coordenadas
-    def limpar_coordenada_v3(valor):
-        if pd.isna(valor) or str(valor).strip() == "" or str(valor).lower() == "nan":
+    # --- FUNÇÃO DE CORREÇÃO BLINDADA (TRATA COORDENADAS GRUDADAS) ---
+    def corrigir_coordenadas_geral(valor):
+        if pd.isna(valor) or str(valor).strip() == "":
             return valor
+        
+        val_str = str(valor).strip()
 
-        # Remove todos os pontos e espaços para pegar apenas a sequência numérica
-        str_val = str(valor).replace('.', '').strip()
-        is_negative = str_val.startswith('-')
+        # Caso 1: Se o valor contiver dois sinais de menos (ex: -38.819...-53.229...)
+        # Vamos tentar pegar apenas a primeira parte
+        if val_str.count('-') > 1:
+            # Divide pelo sinal de menos, mas mantém o sinal no primeiro número
+            partes = val_str.split('-') 
+            # partes[0] costuma ser vazio se começar com '-', partes[1] é o primeiro num
+            val_str = '-' + partes[1] 
 
-        # Filtra apenas os dígitos
-        digits = "".join(filter(str.isdigit, str_val))
-
+        # Caso 2: Limpeza de pontos extras (problema anterior)
+        is_negative = val_str.startswith('-')
+        digits = "".join(filter(str.isdigit, val_str))
+        
         if not digits:
             return valor
 
-        # Regra de Negócio: Para coordenadas GPS padrão (Brasil),
-        # a parte inteira tem 2 dígitos (Ex: -37.xxx ou -49.xxx).
-        # Ajustamos para colocar o ponto após os dois primeiros dígitos.
-        parte_inteira = digits[:2]
-        parte_decimal = digits[2:]
-
-        valor_final = f"{parte_inteira}.{parte_decimal}"
-
-        # Retorna como float para o Excel reconhecer como número
-        try:
+        # Reconstrói garantindo o formato: XX.YYYYY ou X.YYYYY
+        # Para Longitude -38 ou Latitude -5, pegamos os 2 primeiros dígitos como inteiros 
+        # se o número for muito grande, ou apenas o primeiro se for pequeno.
+        if len(digits) > 2:
+            # Se começar com 3, 4, 5 (Latitude)... se começar com 37, 38 (Longitude)
+            # Vamos usar uma lógica de posição:
+            if digits.startswith(('37', '38', '39', '40')): # Provável Longitude
+                corte = 2
+            else: # Provável Latitude (ex: 4, 5...)
+                corte = 1
+                
+            valor_final = f"{digits[:corte]}.{digits[corte:]}"
             return float(f"-{valor_final}" if is_negative else valor_final)
-        except:
-            return valor
+        
+        return valor
 
-    # 2. Aplicação em ambas as colunas
-    colunas_geo = ["Issue Longitude", "Issue Latitude"]
-    for col in colunas_geo:
-        if col in cabecalho_1.columns:
-            cabecalho_1[col] = cabecalho_1[col].apply(limpar_coordenada_v3)
-    # --- FUNÇÃO PADRÃO PARA TODAS AS TEMPERATURAS ---
-# ... (segue o resto do seu código)
+    # Aplicar em ambas para garantir
+    if "Issue Longitude" in cabecalho_1.columns:
+        cabecalho_1["Issue Longitude"] = cabecalho_1["Issue Longitude"].apply(corrigir_coordenadas_geral)
+    
+    if "Issue Latitude" in cabecalho_1.columns:
+        cabecalho_1["Issue Latitude"] = cabecalho_1["Issue Latitude"].apply(corrigir_coordenadas_geral)
 
     # --- FUNÇÃO PADRÃO PARA TODAS AS TEMPERATURAS ---
 
@@ -292,6 +300,6 @@ if uploaded_file is not None:
     st.download_button(
         label="📥 Baixar Relatório em Excel (.xlsx)",
         data=output.getvalue(),
-        file_name=f"Relatorio_{nome_projeto.replace(' ', '_')}.xlsx",
+        file_name=f"{nome_projeto.replace(' ', '_')}planilha.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
