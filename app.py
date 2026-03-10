@@ -25,50 +25,46 @@ if uploaded_file is not None:
 
     cabecalho_1 = rel[list_cabecalho].copy()
 
-    # --- FUNÇÃO DE CORREÇÃO BLINDADA (TRATA COORDENADAS GRUDADAS) ---
-    def corrigir_coordenadas_geral(valor):
-        if pd.isna(valor) or str(valor).strip() == "":
-            return valor
-        
+    # --- FUNÇÃO UNIVERSAL DE LIMPEZA (GEOGRÁFICA) ---
+    def tratar_coordenada_universal(valor, is_latitude=True):
+        if pd.isna(valor) or str(valor).strip() == "" or str(valor).lower() == "nan":
+            return None
+
         val_str = str(valor).strip()
-
-        # Caso 1: Se o valor contiver dois sinais de menos (ex: -38.819...-53.229...)
-        # Vamos tentar pegar apenas a primeira parte
-        if val_str.count('-') > 1:
-            # Divide pelo sinal de menos, mas mantém o sinal no primeiro número
-            partes = val_str.split('-') 
-            # partes[0] costuma ser vazio se começar com '-', partes[1] é o primeiro num
-            val_str = '-' + partes[1] 
-
-        # Caso 2: Limpeza de pontos extras (problema anterior)
         is_negative = val_str.startswith('-')
+
+        # Remove tudo que não for número (limpa pontos, espaços e sinais)
         digits = "".join(filter(str.isdigit, val_str))
-        
         if not digits:
-            return valor
-
-        # Reconstrói garantindo o formato: XX.YYYYY ou X.YYYYY
-        # Para Longitude -38 ou Latitude -5, pegamos os 2 primeiros dígitos como inteiros 
-        # se o número for muito grande, ou apenas o primeiro se for pequeno.
-        if len(digits) > 2:
-            # Se começar com 3, 4, 5 (Latitude)... se começar com 37, 38 (Longitude)
-            # Vamos usar uma lógica de posição:
-            if digits.startswith(('37', '38', '39', '40')): # Provável Longitude
-                corte = 2
-            else: # Provável Latitude (ex: 4, 5...)
-                corte = 1
-                
-            valor_final = f"{digits[:corte]}.{digits[corte:]}"
-            return float(f"-{valor_final}" if is_negative else valor_final)
+            return None
         
-        return valor
 
-    # Aplicar em ambas para garantir
+        # LÓGICA GEOGRÁFICA PARA O BRASIL
+        if is_latitude:
+            # Se os dois primeiros dígitos formarem um número entre 10 e 35 (Ex: -11, -23)
+            # colocamos o ponto após o segundo dígito. Caso contrário, após o primeiro (Ex: -3, -5).
+            primeiros_dois = int(digits[:2]) if len(digits) >= 2 else 0
+            idx = 2 if 10 <= primeiros_dois <= 35 else 1
+        else:
+            # Para Longitude no Brasil, quase sempre são dois dígitos (Ex: -34 a -75)
+            primeiros_dois = int(digits[:2]) if len(digits) >= 2 else 0
+            idx = 2 if 30 <= primeiros_dois <= 80 else 1
+
+        valor_final = f"{digits[:idx]}.{digits[idx:]}"
+
+        try:
+            return float(f"-{valor_final}" if is_negative else valor_final)
+        except:
+            return None
+
+    # --- APLICAÇÃO DIFERENCIADA ---
     if "Issue Longitude" in cabecalho_1.columns:
-        cabecalho_1["Issue Longitude"] = cabecalho_1["Issue Longitude"].apply(corrigir_coordenadas_geral)
-    
+        cabecalho_1["Issue Longitude"] = cabecalho_1["Issue Longitude"].apply(
+            lambda x: tratar_coordenada_universal(x, is_latitude=False))
+
     if "Issue Latitude" in cabecalho_1.columns:
-        cabecalho_1["Issue Latitude"] = cabecalho_1["Issue Latitude"].apply(corrigir_coordenadas_geral)
+        cabecalho_1["Issue Latitude"] = cabecalho_1["Issue Latitude"].apply(
+            lambda x: tratar_coordenada_universal(x, is_latitude=True))
 
     # --- FUNÇÃO PADRÃO PARA TODAS AS TEMPERATURAS ---
 
