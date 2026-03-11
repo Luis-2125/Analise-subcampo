@@ -37,7 +37,6 @@ if uploaded_file is not None:
         digits = "".join(filter(str.isdigit, val_str))
         if not digits:
             return None
-        
 
         # LÓGICA GEOGRÁFICA PARA O BRASIL
         if is_latitude:
@@ -164,16 +163,16 @@ if uploaded_file is not None:
             else:
                 cabecalho_1.loc[i, "Severidade"] = "Verificar Severidade"
 
-        # --- B. VALIDAÇÃO DE LOCALIZAÇÃO (Coordenadas) ---
+        # --- B. VALIDAÇÃO DE LOCALIZAÇÃO (Comentário/Field)---
         # Se a longitude for nula ou zero (caso comum em erros de GPS)
-        if pd.isna(valor_longitude) or valor_longitude == 0:
-            cabecalho_1.loc[i, "Localização"] = "Verificar Localização"
+        if pd.isna(valor_posicao) or valor_posicao == 0 or valor_posicao is False:
+            cabecalho_1.loc[i, "Posição"] = "Verificar Posição"
         else:
-            cabecalho_1.loc[i, "Localização"] = "OK"
+            cabecalho_1.loc[i, "Posição"] = "OK"
 
-        # --- C. VALIDAÇÃO DE POSIÇÃO (Comentário/Field) ---
+        # --- C. VALIDAÇÃO DE POSIÇÃO  ---  (Coordenadas)
         # Se o campo de posição estiver vazio ou for apenas espaços
-        if pd.isna(valor_posicao) or str(valor_posicao).strip() == "":
+        if pd.isna(valor_longitude) or str(valor_longitude).strip() == "" or str(valor_longitude).strip() in ["", "None", "nan", "False"] or valor_posicao is False:
             cabecalho_1.loc[i, "Posição"] = "Verificar Posição"
         else:
             cabecalho_1.loc[i, "Posição"] = "OK"
@@ -231,7 +230,7 @@ if uploaded_file is not None:
         st.warning(
             f"🚨 Foram encontrados problemas em {erros_sev + erros_loc + erros_pos} linhas. Verifique a prévia abaixo ou o arquivo Excel gerado.")
     else:
-        st.success("✅ Todos os dados parecem estar em conformidade!")
+        st.success("✅ Todos os dados em conformidade!")
 
     # visualização prévia
 
@@ -244,9 +243,15 @@ if uploaded_file is not None:
 
     df_excel = cabecalho_1[colunas_exibir]
 
-    # Mostra uma prévia na tela para conferência
-    st.subheader("Prévia do Relatório")
-    st.dataframe(df_excel)
+    # Na hora de mostrar o dataframe na tela
+    st.subheader("🔍 Prévia dos Dados Corrigidos")
+    st.dataframe(
+        cabecalho_1[colunas_exibir].style.format({
+            "Issue Longitude": "{:.8f}",
+            "Issue Latitude": "{:.8f}"
+        }),
+        use_container_width=True
+    )
 
     colunas_export = [
         "Image Filename", "Issue Severity", "Issue Longitude", "Issue Latitude",
