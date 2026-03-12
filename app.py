@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 import re  # Import necessário para a limpeza de texto
-
+import altair as alt
 st.set_page_config(page_title="SCOPSCAN", layout="wide")
 
 st.title("Relatórios CSV ➡️ Excel")
@@ -207,18 +207,27 @@ if uploaded_file is not None:
         formatar_para_relatorio)
 
     # --- 4. GRÁFICO DE DISTRIBUIÇÃO POR TIPO ---
-    st.divider()  # Adiciona uma linha divisória
+    st.divider()
     st.subheader("📊 Distribuição de Issues por Tipo")
 
-    # Contabiliza a quantidade de cada tipo de erro
+    # Contabiliza a quantidade
     df_counts = cabecalho_1["Issue Type Name"].value_counts().reset_index()
     df_counts.columns = ["Tipo de Issue", "Quantidade"]
 
-    # Criação do gráfico de barras
-    # O Streamlit usa o índice como o eixo X (categorias)
-    st.bar_chart(df_counts.set_index("Tipo de Issue"))
+    # Criação do gráfico usando Altair para controlar a rotação do eixo
+    chart = alt.Chart(df_counts).mark_bar().encode(
+        x=alt.X("Tipo de Issue:N",
+                # <--- Força 0 graus (Horizontal)
+                axis=alt.Axis(labelAngle=0)),
+        y="Quantidade:Q",
+        color="Tipo de Issue:N"
+    ).properties(
+        height=400
+    ).interactive()
 
-    # Opcional: Mostrar uma tabela resumida ao lado se preferir
+    st.altair_chart(chart, use_container_width=True)
+
+    # Opcional: Mostrar uma tabela resumida
     if st.checkbox("Mostrar tabela de contagem"):
         st.table(df_counts)
 
