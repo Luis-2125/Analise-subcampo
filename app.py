@@ -206,31 +206,47 @@ if uploaded_file is not None:
     cabecalho_1["Issue Temp Delta"] = cabecalho_1["delta_num"].apply(
         formatar_para_relatorio)
 
-    # --- 4. GRÁFICO DE DISTRIBUIÇÃO POR TIPO ---
+    # --- 4. VISUALIZAÇÃO GRÁFICA (BARRAS E PIZZA) ---
     st.divider()
-    st.subheader("📊 Distribuição de Issues por Tipo")
+    st.subheader("📊 Análise de Issues por Tipo")
 
-    # Contabiliza a quantidade
+    # Contabiliza a quantidade para ambos os gráficos
     df_counts = cabecalho_1["Issue Type Name"].value_counts().reset_index()
     df_counts.columns = ["Tipo de Issue", "Quantidade"]
 
-    # Criação do gráfico usando Altair para controlar a rotação do eixo
-    chart = alt.Chart(df_counts).mark_bar().encode(
-        x=alt.X("Tipo de Issue:N",
-                # <--- Força 0 graus (Horizontal)
-                axis=alt.Axis(labelAngle=0)),
-        y="Quantidade:Q",
-        color="Tipo de Issue:N"
-    ).properties(
-        height=400
-    ).interactive()
+    # Cálculo de porcentagem para o Tooltip da pizza
+    total_issues = df_counts["Quantidade"].sum()
+    df_counts["%"] = (df_counts["Quantidade"] / total_issues * 100).round(1)
 
-    st.altair_chart(chart, use_container_width=True)
+    # Criando duas colunas para os gráficos ficarem lado a lado
+    col_graf1, col_graf2 = st.columns(2)
 
-    # Opcional: Mostrar uma tabela resumida
-    if st.checkbox("Mostrar tabela de contagem"):
-        st.table(df_counts)
+    with col_graf1:
+        st.markdown("### Quantidade Absoluta")
+        bar_chart = alt.Chart(df_counts).mark_bar().encode(
+            x=alt.X("Tipo de Issue:N", axis=alt.Axis(labelAngle=0)),
+            y="Quantidade:Q",
+            # Remove legenda repetida
+            color=alt.Color("Tipo de Issue:N", legend=None)
+        ).properties(height=400)
+        st.altair_chart(bar_chart, use_container_width=True)
 
+    with col_graf2:
+        st.markdown("### Participação (%)")
+        pizza_chart = alt.Chart(df_counts).mark_arc(innerRadius=60).encode(
+            theta=alt.Theta(field="Quantidade", type="quantitative"),
+            color=alt.Color(field="Tipo de Issue", type="nominal"),
+            tooltip=[
+                alt.Tooltip("Tipo de Issue:N"),
+                alt.Tooltip("Quantidade:Q"),
+                alt.Tooltip("%:Q", format=".1f")
+            ]
+        ).properties(height=400)
+        st.altair_chart(pizza_chart, use_container_width=True)
+
+    # Opcional: Mostrar uma tabela resumida abaixo
+    if st.checkbox("Mostrar tabela de dados detalhada"):
+        st.dataframe(df_counts, hide_index=True, use_container_width=True)
     # --- EXPORTAÇÃO PARA EXCEL ---
     st.success("Arquivo processado com sucesso!")
 
@@ -254,11 +270,18 @@ if uploaded_file is not None:
 
     # Na hora de mostrar o dataframe na tela
     st.subheader("🔍 Prévia dos Dados Corrigidos")
+
+    # Criamos uma cópia para exibição para não afetar a lógica do restante do código
+    df_visualizacao = cabecalho_1[colunas_exibir].copy()
+
+    # Ajusta o índice para começar em 1
+    df_visualizacao.index = df_visualizacao.index + 1
+
     st.dataframe(
-        cabecalho_1[colunas_exibir].style.format({
+        df_visualizacao.style.format({
             "Issue Longitude": "{:.8f}",
             "Issue Latitude": "{:.8f}"
-        }),
+        }, na_rep="-"),  # Adicionei o na_rep para evitar aquele erro de NoneType!
         use_container_width=True
     )
 
