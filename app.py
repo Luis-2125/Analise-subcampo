@@ -237,7 +237,7 @@ if uploaded_file is not None:
     # Mensagens de atenção caso existam erros
     if erros_sev > 0 or erros_loc > 0 or erros_pos > 0:
         st.warning(
-            f"🚨 Foram encontrados problemas em {erros_sev + erros_loc + erros_pos} linhas. Verifique a prévia abaixo ou o arquivo Excel gerado.")
+            f"🚨 Foram encontrados problemas em {erros_sev + erros_loc + erros_pos} linhas. Verifique a prévia abaixo.")
     else:
         st.success("✅ Todos os dados em conformidade!")
 
