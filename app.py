@@ -269,7 +269,7 @@ if uploaded_file is not None:
     df_excel = cabecalho_1[colunas_exibir]
 
     # Na hora de mostrar o dataframe na tela
-    st.subheader("🔍 Prévia dos Dados Corrigidos")
+    st.subheader("🔍 Prévia dos Dados")
 
     # Criamos uma cópia para exibição para não afetar a lógica do restante do código
     df_visualizacao = cabecalho_1[colunas_exibir].copy()
