@@ -208,49 +208,85 @@ if uploaded_file is not None:
 
     # --- 4. VISUALIZAÇÃO GRÁFICA (BARRAS E PIZZA) ---
     st.divider()
+
+    # --- Linha 1: Análise por TIPO DE ISSUE ---
     st.subheader("📊 Análise de Issues por Tipo")
+    df_counts_type = cabecalho_1["Issue Type Name"].value_counts(
+    ).reset_index()
+    df_counts_type.columns = ["Tipo de Issue", "Quantidade"]
+    df_counts_type["%"] = (df_counts_type["Quantidade"] /
+                           df_counts_type["Quantidade"].sum() * 100).round(1)
 
-    # Contabiliza a quantidade para ambos os gráficos
-    df_counts = cabecalho_1["Issue Type Name"].value_counts().reset_index()
-    df_counts.columns = ["Tipo de Issue", "Quantidade"]
-
-    # Cálculo de porcentagem para o Tooltip da pizza
-    total_issues = df_counts["Quantidade"].sum()
-    df_counts["%"] = (df_counts["Quantidade"] / total_issues * 100).round(1)
-
-    # Criando duas colunas para os gráficos ficarem lado a lado
     col_graf1, col_graf2 = st.columns(2)
 
     with col_graf1:
         st.markdown("### Quantidade Absoluta")
-        bar_chart = alt.Chart(df_counts).mark_bar().encode(
+        bar_chart = alt.Chart(df_counts_type).mark_bar().encode(
             x=alt.X("Tipo de Issue:N", axis=alt.Axis(labelAngle=0)),
             y="Quantidade:Q",
-            # Remove legenda repetida
             color=alt.Color("Tipo de Issue:N", legend=None)
-        ).properties(height=400)
+        ).properties(height=350)
         st.altair_chart(bar_chart, use_container_width=True)
 
     with col_graf2:
         st.markdown("### Participação (%)")
-        pizza_chart = alt.Chart(df_counts).mark_arc(innerRadius=60).encode(
+        pizza_type = alt.Chart(df_counts_type).mark_arc(innerRadius=60).encode(
             theta=alt.Theta(field="Quantidade", type="quantitative"),
             color=alt.Color(field="Tipo de Issue", type="nominal"),
-            tooltip=[
-                alt.Tooltip("Tipo de Issue:N"),
-                alt.Tooltip("Quantidade:Q"),
-                alt.Tooltip("%:Q", format=".1f")
-            ]
-        ).properties(height=400)
-        st.altair_chart(pizza_chart, use_container_width=True)
+            tooltip=["Tipo de Issue", "Quantidade", "%"]
+        ).properties(height=350)
+        st.altair_chart(pizza_type, use_container_width=True)
+
+    # --- Linha 2: Análise por SEVERIDADE (Nova Seção) ---
+    st.subheader("⚠️ Distribuição por Severidade")
+
+    # Contabiliza a Severidade original do CSV
+    df_counts_sev = cabecalho_1["Issue Severity"].value_counts().reset_index()
+    df_counts_sev.columns = ["Severidade", "Total"]
+    df_counts_sev["%"] = (df_counts_sev["Total"] /
+                          df_counts_sev["Total"].sum() * 100).round(1)
+
+    col_sev1, col_sev2 = st.columns(2)
+
+    with col_sev1:
+        st.markdown("### Total por Nível")
+        # Gráfico de barras horizontal para severidade
+        bar_sev = alt.Chart(df_counts_sev).mark_bar().encode(
+            x="Total:Q",
+            y=alt.Y("Severidade:N", sort='-x'),
+            color=alt.Color("Severidade:N", scale=alt.Scale(
+                scheme='redyellowgreen'), legend=None)
+        ).properties(height=300)
+        st.altair_chart(bar_sev, use_container_width=True)
+
+    with col_sev2:
+        st.markdown("### Proporção de Severidade")
+        pizza_sev = alt.Chart(df_counts_sev).mark_arc(innerRadius=60).encode(
+            theta=alt.Theta(field="Total", type="quantitative"),
+            color=alt.Color(field="Severidade", type="nominal",
+                            scale=alt.Scale(scheme='category10')),
+            tooltip=["Severidade", "Total", "%"]
+        ).properties(height=300)
+        st.altair_chart(pizza_sev, use_container_width=True)
 
     # Opcional: Mostrar uma tabela resumida abaixo
-    if st.checkbox("Mostrar tabela de dados detalhada"):
-        st.dataframe(df_counts, hide_index=True, use_container_width=True)
+    if st.checkbox("Mostrar a tabela de dados detalhada"):
+        col_tab1, col_tab2 = st.columns(2)
+
+        with col_tab1:
+            st.write("**Tabela: Tipos de Issue**")
+            st.dataframe(df_counts_type, hide_index=True,
+                         use_container_width=True)
+
+        with col_tab2:
+            st.write("**Tabela: Severidade**")
+            st.dataframe(df_counts_sev, hide_index=True,
+                         use_container_width=True)
+
     # --- EXPORTAÇÃO PARA EXCEL ---
     st.success("Arquivo processado com sucesso!")
 
-    # Mensagens de atenção caso existam erros
+    # Mensagens de atenção caso existam erros=True)
     if erros_sev > 0 or erros_loc > 0 or erros_pos > 0:
         st.warning(
             f"🚨 Foram encontrados problemas em {erros_sev + erros_loc + erros_pos} linhas. Verifique a prévia abaixo.")
