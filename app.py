@@ -257,33 +257,53 @@ if uploaded_file is not None:
     else:
         st.success("✅ Todos os dados em conformidade!")
 
-    # visualização prévia
+    # --- NOVA SEÇÃO DE VISUALIZAÇÃO COM FILTROS ---
+    st.subheader("🔍 Prévia Interativa")
 
+    # 1. Preparação das colunas
     colunas_exibir = [
         "Image Filename", "Issue Severity", "Issue Longitude", "Issue Latitude",
         "Issue Type Name", "Issue Component Name", "Issue Temp Min", "Issue Temp Max",
         "Issue Temp Avg", "Issue Temp Delta", "Issue Field Type", "Issue Field",
         "Severidade", "Localização", "Posição"
     ]
-
-    df_excel = cabecalho_1[colunas_exibir]
-
-    # Na hora de mostrar o dataframe na tela
-    st.subheader("🔍 Prévia dos Dados")
-
-    # Criamos uma cópia para exibição para não afetar a lógica do restante do código
     df_visualizacao = cabecalho_1[colunas_exibir].copy()
-
-    # Ajusta o índice para começar em 1
     df_visualizacao.index = df_visualizacao.index + 1
 
+    # 2. Interface de Filtros
+    expander_filtros = st.expander("🛠️ Opções de Filtro", expanded=True)
+    with expander_filtros:
+        f_col1, f_col2 = st.columns(2)
+
+        with f_col1:
+            tipos_unicos = sorted(
+                df_visualizacao["Issue Type Name"].unique().tolist())
+            filtro_tipo = st.multiselect(
+                "Filtrar por Tipo de Issue", options=tipos_unicos, default=tipos_unicos)
+
+        with f_col2:
+            status_sev = sorted(
+                df_visualizacao["Issue Severity"].unique().tolist())
+            filtro_sev = st.multiselect(
+                "Filtrar por Status de Severidade", options=status_sev, default=status_sev)
+
+    # 3. Aplicação da Lógica de Filtro
+    df_filtrado = df_visualizacao[
+        (df_visualizacao["Issue Type Name"].isin(filtro_tipo)) &
+        (df_visualizacao["Issue Severity"].isin(filtro_sev))
+    ]
+
+    # 4. Exibição da Tabela
+    st.write(
+        f"Exibindo **{len(df_filtrado)}** de **{len(df_visualizacao)}** registros.")
     st.dataframe(
-        df_visualizacao.style.format({
+        df_filtrado.style.format({
             "Issue Longitude": "{:.8f}",
             "Issue Latitude": "{:.8f}"
-        }, na_rep="-"),  # Adicionei o na_rep para evitar aquele erro de NoneType!
+        }, na_rep="-"),
         use_container_width=True
     )
+    # ----------------------------------------------
 
     colunas_export = [
         "Image Filename", "Issue Severity", "Issue Longitude", "Issue Latitude",
