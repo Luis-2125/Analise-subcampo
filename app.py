@@ -372,7 +372,7 @@ if uploaded_file is not None:
 
             # Ajuste de largura automático
             max_len = max(df_export[value].astype(
-                str).map(len).max(), len(value)) + 5
+                str).str.len().max(), len(value)) + 5
             worksheet.set_column(col_num, col_num, max_len, fmt_centro)
 
         # Inserir Logo e Nome do Projeto
