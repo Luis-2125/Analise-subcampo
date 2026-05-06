@@ -3,10 +3,20 @@ import pandas as pd
 import io
 import re  # Import necessário para a limpeza de texto
 import altair as alt
-st.set_page_config(page_title="SCOPSCAN", layout="wide")
 
-st.title("Relatórios CSV ➡️ Excel")
-st.info("Insira o arquivo 'export.csv' abaixo para processar os dados.")
+st.set_page_config(page_title="SCOPSCAN", layout="wide")
+# cabeçalho do app com colunas e logo
+coluna1, coluna2 = st.columns([1,4], vertical_alignment="center")
+
+with coluna1:
+    st.image("logo0.jpg" , width=125)
+with coluna2:
+    st.title("ANÁLISE DE SUBCAMPO")
+    st.write("Dashboard em tempo real")
+    
+
+
+#st.info("Insira o arquivo 'export.csv' abaixo para processar os dados.")
 
 nome_projeto = st.text_input(
     "Nome do Projeto", placeholder="Ex: UFV SANTA EUGÊNIA SOLAR 1.2")
@@ -111,7 +121,6 @@ if uploaded_file is not None:
     cabecalho_1.loc[indices_longit, "Localização"] = "Verificar Localização"
     cabecalho_1.loc[indices_delta, "Severidade"] = "Verificar Severidade"
 
-    # __________________
 
    # --- 1. FUNÇÃO DE LIMPEZA (RETORNA None SE ESTIVER VAZIO) ---
     def limpar_para_float_v2(valor):
